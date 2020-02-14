@@ -1,21 +1,12 @@
-const http = require('http');
+// load the http module
+var http = require('http');
 
-const hostname = '0.0.0.0';
-const port = 8080;
-
-console.log(process.env.ENVIRONMENT || 'e2e');
-
-if (process.env.ENVIRONMENT === 'prod') {	
-    process.exit(1);	
-}
-
-const server = http.createServer((_, res) => {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/plain');
-  res.end('Merhaba Argo ve kubernetes\n');
+// configure our HTTP server
+var server = http.createServer(function (request, response) {
+  response.writeHead(200, {"Content-Type": "text/plain"});
+  response.end("Hello getintodevops.com\n");
 });
 
-
-server.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
-});
+// listen on localhost:8000
+server.listen(8000);
+console.log("Server listening at http://127.0.0.1:8000/");
