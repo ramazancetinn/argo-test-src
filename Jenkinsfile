@@ -1,31 +1,28 @@
-node{
-    def app
-
-    stage('Clone repository'){
-        /* Let's make sure we have the repository cloned to our workspace */
-        checkout scm
-    }
-    stage('Build image'){
-        /* This builds the actual image; synonymous to
-         * docker build on the command line */
-        app = docker.build("ramazancetin/hellonode")
-    }
-    stage('Test image'){
-        /* Ideally, we would run a test framework against our image.
-         * For this example, we're using a Volkswagen-type approach ;-) */
-        app.inside {
-            sh 'echo "Tests passed"'
+pipeline {
+    agent any
+    stages {
+        stage("Build") {
+          environment {
+            DOCKERHUB_CREDS = credentials('dockerhub')
+          }
+          steps {
+            sh "until docker ps; do sleep 3; done && docker build -t ramazancetinn/hellonode:${env.GIT_COMMIT} ."
+            sh "docker login --username $DOCKERHUB_CREDS_USR --password $DOCKERHUB_CREDS_PSW && docker push ramazancetinn/hellonode:${env.GIT_COMMIT}"
+          }
         }
-    }
-    stage('Push image'){
-        /* Finally, we'll push the image with two tags:
-         * First, the incremental build number from Jenkins
-         * Second, the 'latest' tag.
-         * Pushing multiple tags is cheap, as all the layers are reused. */
-         input message:'Approve deployment?'
-         docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-            app.push("${env.BUILD_NUMBER}")
-            app.push("latest")
+        stage('Deploy') {
+            steps {
+                sh "rm -rf argo-test-deploy || true"
+                sh "git clone https://github.com/ramazancetinn/argo-test-deploy.git"
+                sh "git config --global user.email 'kentkart@ci.com'"
+                input message:'Approve deployment?'
+              dir("argo-test-deploy"){
+                sh "cd ./prod && kustomize edit set image ramazancetinn/hellonode:${env.GIT_COMMIT}"
+                withCredentials([usernamePassword(credentialsId: 'git', passwordVariable: 'GIT_CREDS_PSW', usernameVariable: 'GIT_CREDS_USR')]) {
+                    sh("git commit -am 'Publish new version' && git push https://${GIT_CREDS_USR}:${GIT_CREDS_PSW}@github.com/ramazancetinn/argo-test-deploy.git")
+                }
+              }
+            }
         }
     }
 }
