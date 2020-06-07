@@ -14,7 +14,7 @@ pipeline {
             steps {
                 sh "rm -rf argo-test-deploy || true"
                 sh "git clone https://github.com/ramazancetinn/argo-test-deploy.git"
-                sh "git config --global user.email 'kentkart@ci.com'"
+                sh "git config --global user.email 'ci@ci.com'"
                 input message:'Approve deployment?'
               dir("argo-test-deploy"){
                 sh "cd ./prod && kustomize edit set image ramazancetin/hellonode:${env.GIT_COMMIT}"
